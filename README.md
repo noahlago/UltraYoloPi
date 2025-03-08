@@ -1,2 +1,2 @@
 # pytorch-practice
-First Encounter with Pytorch
+Learning to use Python Machine Learning/Machine Vision libraries
