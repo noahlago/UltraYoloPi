@@ -13,9 +13,18 @@
             width: 80%;
             max-width: 640px;
             border: 2px solid black;
+            margin-top: 10px;
         }
         h2 {
             margin-top: 20px;
+        }
+        .recent-images {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .image-container {
+            margin: 10px;
         }
     </style>
 </head>
@@ -36,8 +45,36 @@
             }
         }
 
-        //Fetch to update the image and gesture data every second
+        async function fetchRecentImages() {
+            try {
+                const response = await fetch('/recent');
+                const data = await response.json();
+                const recentImagesDiv = document.getElementById('recent-images');
+                recentImagesDiv.innerHTML = '';
+
+                data.forEach(entry => {
+                    const imgDiv = document.createElement('div');
+                    imgDiv.classList.add('image-container');
+
+                    const img = document.createElement('img');
+                    img.src = `http://localhost:5000/image/${entry.image.split('/').pop()}`;
+                    img.alt = `Detected: ${entry.gesture}`;
+
+                    const caption = document.createElement('p');
+                    caption.innerText = `Gesture: ${entry.gesture} (Confidence: ${entry.confidence.toFixed(2)})`;
+
+                    imgDiv.appendChild(img);
+                    imgDiv.appendChild(caption);
+                    recentImagesDiv.appendChild(imgDiv);
+                });
+
+            } catch (error) {
+                console.error("Error fetching recent images:", error);
+            }
+        }
+
         setInterval(fetchGesture, 1000);
+        setInterval(fetchRecentImages, 5000);
     </script>
 
 </body>
