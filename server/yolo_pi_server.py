@@ -7,6 +7,7 @@ import threading
 import os
 import time
 from collections import deque
+from threading import Thread
 import sqlite3
 
 #Flask initialization
@@ -132,6 +133,31 @@ def post_feedback():
     )
     conn.commit()
     return {"status": "ok"}
+
+#Use human feedback to retrain the YOLO model periodically
+def retrain():
+    while True:
+        #Retrain the model based on user feedback every hour
+        time.sleep(3600)
+
+        #Fetch gestures that were deemed incorrect by the user
+        c.execute("SELECT image_filename, user_label FROM feedback WHERE is_correct=0 AND user_label IS NOT NULL")
+        rows = c.fetchall()
+        if not rows:
+            continue
+
+        #Prepare a dataset.yaml of the incorrectly identified images
+        with open("feedback_dataset.yaml","w") as f:
+            f.write("train: []\nval: []\nnames:\n  0: thumbs_up\n  1: open_palm\n  2: fist\n 3: thumbs_down\n 4: point\n") 
+
+        #Fine tune YOLO model using these images
+        model.train(data="feedback_dataset.yaml", epochs=2, imgsz=320, weights="yolo11n.pt")
+
+        #Swap in the new weights 
+        model = YOLO("runs/train/feedback_model/weights/best.pt")
+
+#Run the retraining on a separate thread
+threading.Thread(target=retrain, daemon=True).start()
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True, threaded=True)
