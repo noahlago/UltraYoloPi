@@ -1,4 +1,4 @@
-from flask import Flask, Response, jsonify, send_file
+from flask import Flask, Response, jsonify, send_file, request
 from flask_cors import CORS
 import cv2
 from picamera2 import Picamera2
@@ -7,8 +7,14 @@ import threading
 import os
 import time
 from collections import deque
-
 import sqlite3
+
+#Flask initialization
+app = Flask(__name__)
+CORS(app)  #Cross origin requests enabled
+
+#Load the trained model for hand gestures
+model = YOLO("yolo11n.pt")
 
 #User feedback SQLite database
 DB_PATH = "feedback.db"
@@ -25,13 +31,6 @@ CREATE TABLE IF NOT EXISTS feedback (
 )
 """)
 conn.commit()
-
-#Flask initialization
-app = Flask(__name__)
-CORS(app)  #Cross origin requests enabled
-
-#Load the trained model for hand gestures
-model = YOLO("yolo11n.pt")
 
 #PiCamera initialization and settings
 picam2 = Picamera2()
@@ -113,6 +112,26 @@ def get_image(filename):
         return send_file(image_path, mimetype='image/jpeg')
     else: 
         return jsonify({"error": "Image not found"}), 404
+    
+@app.route('/feedback', methods=['POST'])
+def post_feedback():
+    """
+    Expects JSON:
+      {
+        "image": "1609459200.jpg",
+        "predicted": "thumbs_up",
+        "is_correct": true,
+        "user_label": "open_palm"  # optional if incorrect
+      }
+    """
+    data = request.get_json()
+    ts = int(time.time())
+    c.execute(
+      "INSERT INTO feedback (timestamp, image_filename, predicted_gesture, is_correct, user_label) VALUES (?,?,?,?,?)",
+      (ts, data['image'], data['predicted'], int(data['is_correct']), data.get('user_label'))
+    )
+    conn.commit()
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True, threaded=True)
