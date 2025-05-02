@@ -8,6 +8,24 @@ import os
 import time
 from collections import deque
 
+import sqlite3
+
+#User feedback SQLite database
+DB_PATH = "feedback.db"
+conn = sqlite3.connect(DB_PATH, check_same_thread=False)
+c = conn.cursor()
+c.execute("""
+CREATE TABLE IF NOT EXISTS feedback (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp INTEGER,
+    image_filename TEXT,
+    detected_gesture TEXT,
+    is_correct INTEGER,
+    user_label TEXT
+)
+""")
+conn.commit()
+
 #Flask initialization
 app = Flask(__name__)
 CORS(app)  #Cross origin requests enabled
