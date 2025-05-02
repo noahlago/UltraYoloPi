@@ -28,6 +28,17 @@ app.get('/recent', async (res) => {
     }
 });
 
+app.use(express.json());
+//Fetch user feedback based on recent images
+app.post('/feedback', async (req, res) => {
+  try {
+    await axios.post('http://localhost:5000/feedback', req.body);
+    res.json({ status: 'ok' });
+  } catch (err) {
+    res.status(500).json({ error: 'Feedback failed' });
+  }
+});
+
 //Launch the server
 app.listen(PORT, () => {
     console.log(`Web server running at http://localhost:${PORT}`);

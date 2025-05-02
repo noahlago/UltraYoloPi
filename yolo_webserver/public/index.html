@@ -63,13 +63,52 @@
                     const caption = document.createElement('p');
                     caption.innerText = `Gesture: ${entry.gesture} (Confidence: ${entry.confidence.toFixed(2)})`;
 
+                    //Human feedback form
+                    const form = document.createElement('div');
+
+                    const btnCorrect = document.createElement('button');
+                    btnCorrect.innerText = '✔️ Correct';
+                    btnCorrect.onclick = () => sendFeedback(entry.image.split('/').pop(), entry.gesture, true, entry.gesture);
+
+                    const btnIncorrect = document.createElement('button');
+                    btnIncorrect.innerText = '❌ Incorrect';
+                    btnIncorrect.onclick = () => {
+                        //Prompt the user for the correct gesture label
+                        const userLabel = prompt("Enter correct gesture label:");
+                        if (!userLabel) return;
+                        sendFeedback(entry.image.split('/').pop(), entry.gesture, false, userLabel);
+                    };
+
+                    form.appendChild(btnCorrect);
+                    form.appendChild(btnIncorrect);
+
                     imgDiv.appendChild(img);
                     imgDiv.appendChild(caption);
+                    imgDiv.appendChild(form);
+
                     recentImagesDiv.appendChild(imgDiv);
                 });
 
             } catch (error) {
                 console.error("Error fetching recent images:", error);
+            }
+        }
+
+        async function sendFeedback(filename, predicted, isCorrect, userLabel) {
+            try {
+            await fetch('/feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                image: filename,
+                predicted: predicted,
+                is_correct: isCorrect,
+                user_label: userLabel
+                })
+            });
+            alert("Your feedback will be used to iterate the MV model.");
+            } catch (err) {
+                console.error("Feedback error:", err);
             }
         }
 
