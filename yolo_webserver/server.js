@@ -8,27 +8,28 @@ const PORT = 3000;
 app.use(express.static('public'));
 
 //Fetch the detected gesture
-app.get('/gesture', async (res) => {
+app.get('/gesture', async (req, res) => {
     try {
         const response = await axios.get('http://localhost:5000/gesture');
         res.json(response.data);
     } catch (error) {
+        console.error("Error fetching gesture:", error.message);
         res.status(500).json({ error: "Failed to fetch gesture data" });
     }
 });
 
 //Fetch the latest 10 images with attached gesture detections
-app.get('/recent', async (res) => {
+app.get('/recent', async (req, res) => {
     try{
         const response = await axios.get('http://localhost:5000/recent');
         res.json(response.data);
     }
     catch (error){
+        console.error("Error fetching recent images:", error.message);
         res.status(500).json({ error: "Failed to fetch recent images" });
     }
 });
 
-app.use(express.json());
 //Fetch user feedback based on recent images
 app.post('/feedback', async (req, res) => {
   try {
@@ -37,6 +38,12 @@ app.post('/feedback', async (req, res) => {
   } catch (err) {
     res.status(500).json({ error: 'Feedback failed' });
   }
+});
+
+//Final layer of error handling for the server
+app.use((err, req, res, next) => {
+    console.error('Server error:', err);
+    res.status(500).json({ error: 'Internal server error' });
 });
 
 //Launch the server
