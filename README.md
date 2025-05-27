@@ -122,10 +122,11 @@ Replace `[raspberry_pi_ip]` with your Raspberry Pi's IP address.
 
 ### Viewing Gesture Recognition
 
-1. Position your hand in front of the camera
-2. Make one of the five supported gestures
-3. The system will display the detected gesture in real-time
-4. Recent detections appear below the main video feed
+1. Ensure that the camera is enabled (privacy mode is disabled)
+2. Position your hand in front of the camera
+3. Make one of the five supported gestures
+4. The system will display the detected gesture in real-time
+5. Recent detections appear below the main video feed
 
 ### Providing Feedback for Model Improvement
 
@@ -196,12 +197,14 @@ The system improves over time through:
 - Position your hand clearly in the camera's field of view
 - Provide feedback for incorrect detections to improve the model
 - Check the model file exists and is correctly loaded
+- Switch to a more powerful yolo model if your system capabilities permit it
 
 ### Connection Errors
 
 - Verify both Flask and Express servers are running
 - Check network connectivity between the servers
 - Ensure the correct IP addresses are being used in configuration
+- Check physical camera connection to the board
 
 ## Advanced Configuration
 
@@ -242,4 +245,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-*This project was created for educational purposes to learn about computer vision and machine learning.*
+*This project was created for educational purposes to learn about computer vision and machine learning. It is a WIP.*
