@@ -9,6 +9,7 @@ import time
 from collections import deque
 from threading import Thread
 import sqlite3
+import numpy as np
 
 #Flask initialization
 app = Flask(__name__)
@@ -49,11 +50,34 @@ current_gesture = "None"  #Temporarily stores the gesture recognized by the yolo
 last_inf = 0
 INF_INT = 0.5 #Image inference every 0.5s 
 
+#Toggle to enable/disable image capture for privacy
+#Enabled by default
+capture_enabled = True
+
 def generate_frames():
     global current_gesture, last_inf
     while True:
         try:
-            frame = picam2.capture_array()
+            #Check if image capture is enabled
+            if capture_enabled:
+                frame = picam2.capture_array()
+            else:
+                #When capture is disabled, inform the user that privacy mode is enabled
+                frame = np.zeros((480, 640, 3), dtype=np.uint8)
+                cv2.putText(frame, "Camera Privacy Mode Enabled", (80, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                
+                #Reset gesture when privacy mode is on
+                current_gesture = "None"
+                
+                #Convert the frame to a jpeg image
+                _, buffer = cv2.imencode('.jpg', frame)
+                frame_bytes = buffer.tobytes()
+                
+                #Return/yield the frame 
+                yield (b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                time.sleep(0.1)  #Short delay in privacy mode
+                continue  #Skip the rest of the loop in privacy mode (no need for inference)
 
             curr_time = time.time()
             run_inf = curr_time - last_inf >= INF_INT
@@ -138,6 +162,7 @@ def get_image(filename):
     else: 
         return jsonify({"error": "Image not found"}), 404
     
+#API to send user feedback
 @app.route('/feedback', methods=['POST'])
 def post_feedback():
     """
@@ -180,15 +205,25 @@ def retrain():
         #Swap in the new weights 
         model = YOLO("runs/train/feedback_model/weights/best.pt")
 
+#API to toggle privacy mode and image captures
+@app.route('/toggle_capture', methods=['POST'])
+def toggle_capture():
+    global capture_enabled
+    data = request.get_json()
+    capture_enabled = data.get('enabled', True)
+    return jsonify({"status": "ok", "capture_enabled": capture_enabled})
+
+#API to get the active capture status
+@app.route('/capture_status')
+def get_capture_status():
+    return jsonify({"capture_enabled": capture_enabled})
+
 #Run the retraining on a separate thread
 threading.Thread(target=retrain, daemon=True).start()
 
 if __name__ == "__main__":
     #Ensure dir exists
     os.makedirs(IMG_FOLDER, exist_ok=True)
-
-    #Used for errors
-    import numpy as np
 
     #Run the server
     app.run(host="0.0.0.0", port=5000, debug=True, threaded=True)

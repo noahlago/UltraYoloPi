@@ -8,6 +8,9 @@
         body {
             font-family: Arial, sans-serif;
             text-align: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
         }
         img {
             width: 80%;
@@ -22,19 +25,150 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
+            margin-top: 30px;
         }
         .image-container {
             margin: 10px;
+            max-width: 300px;
+        }
+        .image-container img {
+            width: 100%;
+        }
+        .controls {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        .privacy-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+        .privacy-status {
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .privacy-warning {
+            color: red;
+            font-weight: bold;
+            display: none;
         }
     </style>
 </head>
 <body>
 
     <h1>Hand Gesture Recognition</h1>
+    
+    <nav>
+        <a href="instructions.html">Instructions & Troubleshooting</a>
+    </nav>
+
+    <div class="controls">
+        <div class="privacy-toggle">
+            <span>Privacy Mode:</span>
+            <label class="toggle-switch">
+                <input type="checkbox" id="privacy-toggle">
+                <span class="slider"></span>
+            </label>
+            <span class="privacy-status">Camera Enabled</span>
+        </div>
+        <p class="privacy-warning" id="privacy-warning">Camera is disabled - No images are being captured</p>
+    </div>
+    
     <img src="http://localhost:5000/video_feed" alt="Live Video Feed">
     <h2>Detected Gesture: <span id="gesture">Loading...</span></h2>
 
+    <h2>Recent Detections</h2>
+    <div id="recent-images" class="recent-images">
+        <!-- Recent images will be loaded here -->
+    </div>
+
     <script>
+        //Track the camera state
+        let captureEnabled = true;
+        const privacyToggle = document.getElementById('privacy-toggle');
+        const privacyStatus = document.querySelector('.privacy-status');
+        const privacyWarning = document.getElementById('privacy-warning');
+
+        //Initialize the toggle state
+        async function initCaptureStatus() {
+            try {
+                const response = await fetch('/capture_status');
+                const data = await response.json();
+                captureEnabled = data.capture_enabled;
+                updateToggleUI();
+            } catch (error) {
+                console.error("Error fetching capture status:", error);
+            }
+        }
+
+        //Update the image capture UI elements based on the current state
+        function updateToggleUI() {
+            privacyToggle.checked = !captureEnabled;
+            privacyStatus.textContent = captureEnabled ? "Camera Enabled" : "Camera Disabled";
+            privacyWarning.style.display = captureEnabled ? "none" : "block";
+        }
+
+        //Toggle camera capture for privacy
+        privacyToggle.addEventListener('change', async () => {
+            captureEnabled = !privacyToggle.checked;
+            
+            try {
+                await fetch('/toggle_capture', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ enabled: captureEnabled })
+                });
+                updateToggleUI();
+            } catch (error) {
+                console.error("Error toggling capture:", error);
+                //Revert toggle if request fails
+                privacyToggle.checked = !captureEnabled;
+            }
+        });
+
         async function fetchGesture() {
             try {
                 const response = await fetch('/gesture');
@@ -47,10 +181,21 @@
 
         async function fetchRecentImages() {
             try {
+                //Only fetch recent images if capture is enabled
+                if (!captureEnabled) {
+                    document.getElementById('recent-images').innerHTML = '<p>No recent images - Privacy mode enabled</p>';
+                    return;
+                }
+                
                 const response = await fetch('/recent');
                 const data = await response.json();
                 const recentImagesDiv = document.getElementById('recent-images');
                 recentImagesDiv.innerHTML = '';
+
+                if (data.length === 0) {
+                    recentImagesDiv.innerHTML = '<p>No recent images available</p>';
+                    return;
+                }
 
                 data.forEach(entry => {
                     const imgDiv = document.createElement('div');
@@ -96,22 +241,26 @@
 
         async function sendFeedback(filename, predicted, isCorrect, userLabel) {
             try {
-            await fetch('/feedback', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                image: filename,
-                predicted: predicted,
-                is_correct: isCorrect,
-                user_label: userLabel
-                })
-            });
-            alert("Your feedback will be used to iterate the MV model.");
+                await fetch('/feedback', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        image: filename,
+                        predicted: predicted,
+                        is_correct: isCorrect,
+                        user_label: userLabel
+                    })
+                });
+                alert("Your feedback will be used to iterate the MV model.");
             } catch (err) {
                 console.error("Feedback error:", err);
             }
         }
 
+        //Initialize the capture status of the page
+        initCaptureStatus();
+        
+        //Set up recent image and inference intervals
         setInterval(fetchGesture, 1000);
         setInterval(fetchRecentImages, 5000);
     </script>
