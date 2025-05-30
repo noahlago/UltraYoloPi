@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Inference Metrics</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 20px; }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 20px; text-decoration: none; color: #2196F3; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background: #2196F3; color: #fff; }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="index.html">← Back to Recognition</a>
+        <a href="instructions.html">Instructions & Troubleshooting</a>
+    </nav>
+    <h1>Recent Inference Metrics</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th>
+                <th>Gesture</th>
+                <th>Confidence</th>
+                <th>Inference Time (s)</th>
+            </tr>
+        </thead>
+        <tbody id="metrics-body">
+            <tr><td colspan="4">Loading...</td></tr>
+        </tbody>
+    </table>
+    <script>
+        async function fetchMetrics() {
+            try {
+                const res = await fetch('/metrics');
+                const data = await res.json();
+                const tbody = document.getElementById('metrics-body');
+                tbody.innerHTML = '';
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">No metrics available</td></tr>';
+                    return;
+                }
+                data.slice().reverse().forEach(m => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${new Date(m.timestamp * 1000).toLocaleString()}</td>
+                        <td>${m.gesture}</td>
+                        <td>${m.confidence ? m.confidence.toFixed(2) : '-'}</td>
+                        <td>${m.inference_time ? m.inference_time.toFixed(3) : '-'}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                document.getElementById('metrics-body').innerHTML = '<tr><td colspan="4">Error loading metrics</td></tr>';
+            }
+        }
+        fetchMetrics();
+        setInterval(fetchMetrics, 5000);
+    </script>
+</body>
+</html>
