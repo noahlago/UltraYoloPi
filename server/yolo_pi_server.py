@@ -54,6 +54,9 @@ INF_INT = 0.5 #Image inference every 0.5s
 #Enabled by default
 capture_enabled = True
 
+# Store recent inference metrics
+metrics = deque(maxlen=20)  # Last 20 inferences
+
 def generate_frames():
     global current_gesture, last_inf
     while True:
@@ -82,9 +85,12 @@ def generate_frames():
             curr_time = time.time()
             run_inf = curr_time - last_inf >= INF_INT
 
+            #Run yolo model on the captured image
             if run_inf:
-                #Run yolo model on the captured image
+                inf_start = time.time()
                 results = model(frame)
+                inf_end = time.time()
+                inf_time = inf_end - inf_start
 
                 #Temporarily store detected gesture and confidence value during processing
                 detected = "None" 
@@ -103,6 +109,14 @@ def generate_frames():
                 #Update to the newly detected gesture if confident
                 if detected != "None" and confidence > 0.4:
                     current_gesture = detected
+
+                #Store metrics
+                metrics.append({
+                    "timestamp": int(time.time()),
+                    "gesture": detected,
+                    "confidence": confidence,
+                    "inference_time": inf_time
+                })
 
                 #Attach the detected gesture to the frame
                 annotated_frame = results[0].plot()
@@ -217,6 +231,11 @@ def toggle_capture():
 @app.route('/capture_status')
 def get_capture_status():
     return jsonify({"capture_enabled": capture_enabled})
+
+#API to get recent inference metrics
+@app.route('/metrics')
+def get_metrics():
+    return jsonify(list(metrics))
 
 #Run the retraining on a separate thread
 threading.Thread(target=retrain, daemon=True).start()

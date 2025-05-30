@@ -65,6 +65,17 @@ app.get('/capture_status', async (req, res) => {
     }
 });
 
+//Recent performance metrics on gesture detection
+app.get('/metrics', async (req, res) => {
+    try {
+        const response = await axios.get('http://localhost:5000/metrics');
+        res.json(response.data);
+    } catch (error) {
+        console.error("Error fetching metrics:", error.message);
+        res.status(500).json({ error: "Failed to fetch metrics" });
+    }
+});
+
 //Final layer of error handling for the server
 app.use((error, req, res, next) => {
     console.error('Server error:', error);
