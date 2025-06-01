@@ -117,6 +117,27 @@
         </div>
         <p class="privacy-warning" id="privacy-warning">Camera is disabled - No images are being captured</p>
     </div>
+
+    <div class="controls">
+        <button onclick="manageModel('save')">💾 Save Model</button>
+        <button onclick="manageModel('load')">📂 Load Model</button>
+        <button onclick="manageModel('reset')">🔄 Reset Model</button>
+        <span id="model-status"></span>
+    </div>
+
+    <script>
+    async function manageModel(action) {
+        const status = document.getElementById('model-status');
+        status.textContent = 'Processing...';
+        try {
+            const res = await fetch(`/model/${action}`, { method: 'POST' });
+            const data = await res.json();
+            status.textContent = data.message || (data.error ? data.error : 'Unknown error');
+        } catch (err) {
+            status.textContent = 'Request failed';
+        }
+    }
+    </script>
     
     <img src="http://localhost:5000/video_feed" alt="Live Video Feed">
     <h2>Detected Gesture: <span id="gesture">Loading...</span></h2>
