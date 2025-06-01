@@ -76,6 +76,36 @@ app.get('/metrics', async (req, res) => {
     }
 });
 
+//Save current YOLO model
+app.post('/model/save', async (req, res) => {
+    try {
+        const response = await axios.post('http://localhost:5000/model/save');
+        res.json(response.data);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to save model" });
+    }
+});
+
+//Load saved YOLO model
+app.post('/model/load', async (req, res) => {
+    try {
+        const response = await axios.post('http://localhost:5000/model/load');
+        res.json(response.data);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to load model" });
+    }
+});
+
+//Reset YOLO model to default (specified in python server)
+app.post('/model/reset', async (req, res) => {
+    try {
+        const response = await axios.post('http://localhost:5000/model/reset');
+        res.json(response.data);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to reset model" });
+    }
+});
+
 //Final layer of error handling for the server
 app.use((error, req, res, next) => {
     console.error('Server error:', error);

@@ -54,8 +54,11 @@ INF_INT = 0.5 #Image inference every 0.5s
 #Enabled by default
 capture_enabled = True
 
-# Store recent inference metrics
-metrics = deque(maxlen=20)  # Last 20 inferences
+#Store recent inference metrics
+metrics = deque(maxlen=20)  #Last 20 inferences
+
+MODEL_SAVE_PATH = "custom_model.pt"
+DEFAULT_MODEL_PATH = "yolo11n.pt"
 
 def generate_frames():
     global current_gesture, last_inf
@@ -236,6 +239,38 @@ def get_capture_status():
 @app.route('/metrics')
 def get_metrics():
     return jsonify(list(metrics))
+
+#API endpoint to save current YOLO model weights
+@app.route('/model/save', methods=['POST'])
+def save_model():
+    try:
+        #Save current model weights
+        model.save(MODEL_SAVE_PATH)
+        return jsonify({"status": "ok", "message": "Model saved."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+#API endpoint to load a full set of saved YOLO model weights
+@app.route('/model/load', methods=['POST'])
+def load_model():
+    global model
+    try:
+        if not os.path.exists(MODEL_SAVE_PATH):
+            return jsonify({"status": "error", "message": "No saved model found."}), 404
+        model = YOLO(MODEL_SAVE_PATH)
+        return jsonify({"status": "ok", "message": "Model loaded."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+#API endpoint to reset weights to the default YOLO model
+@app.route('/model/reset', methods=['POST'])
+def reset_model():
+    global model
+    try:
+        model = YOLO(DEFAULT_MODEL_PATH)
+        return jsonify({"status": "ok", "message": "Model reset to default."})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 #Run the retraining on a separate thread
 threading.Thread(target=retrain, daemon=True).start()
